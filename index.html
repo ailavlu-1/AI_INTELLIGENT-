@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Supabase Knowledge Bot</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { padding: 10px; margin-top: 10px; }
+    #chat { margin-top: 20px; }
+    .user { color: blue; }
+    .bot { color: green; }
+  </style>
+</head>
+<body>
+  <h2>🤖 Supabase Knowledge Bot</h2>
+  <input id="userInput" type="text" placeholder="Type your question..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <div id="chat"></div>
+
+  <script>
+    // ✅ Supabase Setup
+    const SUPABASE_URL = "https://ejkhouvldirbkhblmfwg.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqa2hvdXZsZGlyYmtoYmxtZndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNjgyNzIsImV4cCI6MjA2Nzc0NDI3Mn0.OR42hMgpcj2GmXjbhfNjA9BbAfRiAPhSEoFW_mPpWQc";
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let knowledgeMode = false;
+    let knowledgeBase = {};
+
+    // ✅ Load Knowledge Base from Supabase
+    async function loadKnowledgeBase() {
+      const { data, error } = await supabase
+        .from('knowledge_base')
+        .select('question, answer');
+
+      if (error) {
+        console.error("Error loading KB:", error);
+      } else {
+        data.forEach(item => {
+          knowledgeBase[item.question.toLowerCase()] = item.answer;
+        });
+        console.log("📚 Knowledge Base Loaded");
+      }
+    }
+
+    loadKnowledgeBase(); // Load on page start
+
+    // ✅ Message Handling
+    function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim().toLowerCase();
+      if (!text) return;
+
+      addMessage("🧑 You", text);
+
+      if (text === "active knowledge mood" || text === "নলেজ মুডে প্রবেশ কর") {
+        knowledgeMode = true;
+        addMessage("🤖 Bot", "✅ Knowledge Mode Activated!");
+      } else if (text === "cancel knowledge" || text === "নলেজ মুড বাতিল কর") {
+        knowledgeMode = false;
+        addMessage("🤖 Bot", "❌ Knowledge Mode Cancelled!");
+      } else {
+        if (knowledgeMode) {
+          const reply = knowledgeBase[text];
+          if (reply) {
+            addMessage("🤖 Bot", reply);
+          } else {
+            addMessage("🤖 Bot", "🔍 এই প্রশ্নের উত্তর আমাদের knowledge base-এ নেই।");
+          }
+        } else {
+          addMessage("🤖 Bot", `🌐 বাইরের উৎস থেকে উত্তর: '${text}' এর জন্য তথ্য খোঁজা হচ্ছে...`);
+        }
+      }
+
+      input.value = "";
+    }
+
+    function addMessage(sender, text) {
+      const chat = document.getElementById("chat");
+      const msg = document.createElement("div");
+      msg.className = sender.includes("You") ? "user" : "bot";
+      msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
